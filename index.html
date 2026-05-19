@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GANTT'o'MATIC</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#1a4f8a;
+  --bg:#f2f4f7;
+  --card:#fff;
+  --border:#d4dae4;
+  --text:#1c2333;
+  --muted:#6b7a99;
+  --font:'Barlow',sans-serif;
+  --font-cond:'Barlow Condensed',sans-serif;
+  --sb-w:330px;
+  --col-task:180px;
+  --col-hum:62px;
+  --col-tec:128px;
+  --col-fixed:370px; /* col-task + col-hum + col-tec */
+}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* ══════════════════════════════════
+   APP SHELL  —  sidebar + main côte à côte
+   ══════════════════════════════════ */
+.app{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sb-w);flex-shrink:0;
+  background:var(--card);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  height:100%;
+  transition:width .25s ease,min-width .25s ease;
+  overflow:hidden;
+  position:relative;
+  z-index:20;
+}
+.sidebar.collapsed{width:36px;min-width:36px}
+.sidebar.collapsed .sb-inner{opacity:0;pointer-events:none}
+
+/* contenu intérieur caché quand réduit */
+.sb-inner{display:flex;flex-direction:column;height:100%;overflow:hidden;transition:opacity .2s}
+
+/* bouton toggle */
+.sb-toggle{
+  position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+  width:26px;height:44px;
+  background:var(--accent);
+  border:none;border-radius:0 6px 6px 0;
+  cursor:pointer;z-index:30;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;
+  box-shadow:2px 0 8px rgba(0,0,0,.15);
+  transition:background .15s;
+  flex-shrink:0;
+}
+.sb-toggle:hover{background:#163f70}
+.sb-toggle svg{transition:transform .25s}
+.sidebar.collapsed .sb-toggle svg{transform:rotate(180deg)}
+
+/* bande verticale quand réduit */
+.sidebar.collapsed::before{
+  content:'GANTT\'o\'MATIC';
+  position:absolute;left:0;top:0;bottom:0;width:36px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-cond);font-size:10px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.7);
+  writing-mode:vertical-rl;text-orientation:mixed;
+  background:var(--accent);
+}
+
+/* header sidebar */
+.sb-head{
+  padding:14px 18px 12px;
+  background:var(--accent);color:#fff;
+  flex-shrink:0;
+}
+.sb-head h1{
+  font-family:var(--font-cond);font-size:17px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;line-height:1
+}
+.sb-head h1 span{color:#f59e0b}
+.sb-head p{font-size:11px;opacity:.65;margin-top:3px}
+
+.sb-body{flex:1;overflow-y:auto;overflow-x:hidden}
+
+/* sections */
+.sec{border-bottom:1px solid var(--border);padding:13px 16px}
+.sec-t{font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px;margin-top:8px}
+label:first-child{margin-top:0}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  width:100%;font-family:var(--font);font-size:13px;color:var(--text);
+  background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:6px 8px;outline:none;transition:border-color .15s
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+input[type=color]{width:34px;height:30px;padding:2px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--bg)}
+
+/* TABS */
+.tabs{display:flex;gap:2px;padding:9px 12px 0;background:var(--bg);flex-shrink:0}
+.tab{
+  font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:5px 9px;border-radius:5px 5px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  background:var(--bg);color:var(--muted);cursor:pointer;transition:.12s
+}
+.tab.on{background:#fff;color:var(--accent)}
+.tp{display:none}.tp.on{display:block}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  font-family:var(--font);font-size:12px;font-weight:600;
+  padding:6px 12px;border-radius:5px;border:none;cursor:pointer;transition:.15s;white-space:nowrap
+}
+.bp{background:var(--accent);color:#fff}.bp:hover{background:#163f70}
+.ba{background:#e8730a;color:#fff}.ba:hover{background:#c45f05}
+.bg{background:transparent;color:var(--muted);border:1px solid var(--border)}.bg:hover{background:var(--bg);color:var(--text)}
+.bfull{width:100%;margin-top:8px;justify-content:center}
+.bsm{padding:4px 9px;font-size:11px}
+
+/* LOGO */
+.logo-zone{border:2px dashed var(--border);border-radius:7px;padding:12px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.logo-zone:hover{border-color:var(--accent);background:#eef3fa}
+.logo-zone img{max-height:46px;max-width:150px;object-fit:contain}
+.logo-zone p{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* PHASE / TASK items */
+.ph-item{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:5px;background:var(--bg);margin-bottom:4px;border:1px solid var(--border)}
+.ph-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.ph-item span{flex:1;font-size:12px;font-weight:500}
+.xbtn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:1px 4px;border-radius:3px;transition:color .12s}
+.xbtn:hover{color:#b91c1c}
+.tk-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;background:var(--bg);margin-bottom:3px;border:1px solid var(--border)}
+.tk-pip{height:6px;width:28px;border-radius:2px;flex-shrink:0}
+.tk-item span{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-item small{font-size:10px;color:var(--muted);flex-shrink:0}
+
+/* sidebar actions footer */
+.sb-foot{flex-shrink:0;padding:12px 16px;border-top:2px solid var(--accent);background:#f8f9fc}
+
+/* ══════════════════════════════════
+   MAIN AREA
+   ══════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:18px 20px}
+
+/* top bar */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0}
+.topbar h2{font-family:var(--font-cond);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+
+/* GANTT CARD */
+.gc{
+  background:#fff;border-radius:10px;
+  box-shadow:0 2px 14px rgba(0,0,0,.08);
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;min-height:0
+}
+
+/* DOC HEADER */
+.dh{display:flex;align-items:center;border-bottom:3px solid var(--accent);padding:11px 16px;gap:14px;flex-shrink:0}
+.logo-slot{display:flex;align-items:center;min-width:90px;max-width:150px}
+.logo-slot img{max-height:44px;max-width:130px;object-fit:contain}
+.no-logo{width:90px;height:38px;border:1px dashed var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.di{flex:1;min-width:0}
+.ptitle{font-family:var(--font-cond);font-size:18px;font-weight:700;color:var(--accent);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
+
+
+/* ══════════════════════════════════
+   GANTT TABLE  —  colonnes fixes + scroll horizontal
+   Approche : table dans un wrapper flex
+   Les 3 premières colonnes sont "sticky"
+   ══════════════════════════════════ */
+.gantt-area{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+
+/* wrapper horizontal scrollable */
+.gtw{
+  flex:1;overflow:auto;min-height:0;
+  /* scrollbar visible */
+}
+.gtw::-webkit-scrollbar{height:8px;width:8px}
+.gtw::-webkit-scrollbar-track{background:#f0f2f5}
+.gtw::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* table */
+.gg{
+  border-collapse:collapse;
+  table-layout:fixed;
+  /* width will be set by JS based on column count */
+}
+
+/* Sticky left columns */
+.gg th.s,.gg td.s{
+  position:sticky;
+  background:inherit;
+  z-index:4;
+}
+/* column positions */
+.s1{left:0;width:var(--col-task);min-width:var(--col-task)}
+.s2{left:var(--col-task);width:var(--col-hum);min-width:var(--col-hum)}
+.s3{left:calc(var(--col-task) + var(--col-hum));width:var(--col-tec);min-width:var(--col-tec)}
+/* right border on last sticky */
+.s3{border-right:2px solid var(--border) !important}
+
+/* HEADER rows */
+.gg thead{position:sticky;top:0;z-index:5}
+.gg thead tr.hr1{background:var(--accent)}
+.gg thead tr.hr2{background:#163f70}
+.gg thead th.s1,.gg thead th.s2,.gg thead th.s3{background:var(--accent)}
+.gg thead tr.hr2 th.s1,.gg thead tr.hr2 th.s2,.gg thead tr.hr2 th.s3{background:#163f70}
+
+.gg thead th{padding:0;border:none;border-left:1px solid rgba(255,255,255,.1)}
+.gg thead th.s1,.gg thead th.s2,.gg thead th.s3{border-left:none}
+
+.th-fix{
+  padding:7px 9px;font-family:var(--font-cond);font-size:10px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.82);
+  text-align:left;vertical-align:bottom
+}
+.th-per{
+  padding:5px 2px;font-family:var(--font-cond);font-size:10px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.88);
+  text-align:center;vertical-align:middle;white-space:nowrap
+}
+.th-sub{
+  padding:3px 1px;font-family:var(--font-cond);font-size:9px;font-weight:600;
+  color:rgba(255,255,255,.6);text-align:center;vertical-align:middle;white-space:nowrap
+}
+.th-sub.nb{border-left:1px solid rgba(255,255,255,.2) !important}
+
+/* PHASE rows */
+.gg tr.pr td{background:#eef2f8}
+.gg tr.pr td.s1,.gg tr.pr td.s2,.gg tr.pr td.s3{background:#eef2f8}
+.plc{
+  padding:5px 9px;font-family:var(--font-cond);font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
+  display:flex;align-items:center;gap:5px;height:100%
+}
+.pd2{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* TASK rows */
+.gg tr.tr td{border-bottom:1px solid #eff1f6;background:#fff}
+.gg tr.tr:hover td{background:#f7f9fc}
+.gg tr.tr td.s1,.gg tr.tr td.s2,.gg tr.tr td.s3{background:inherit}
+
+.tlc{padding:0 8px 0 18px;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.hc{padding:0 3px;font-size:11px;color:var(--text);text-align:center;vertical-align:middle;white-space:nowrap}
+.tc{padding:0 5px;font-size:10px;color:var(--muted);vertical-align:middle;line-height:1.3}
+
+/* TIME CELLS */
+.bc{position:relative;vertical-align:middle;padding:0;border-left:1px solid #e8edf4}
+.bc.month-sep{border-left:1px solid #c5cdd8 !important}
+
+/* today line */
+.ti{position:absolute;top:0;bottom:0;width:2px;background:#e53e3e;z-index:8;pointer-events:none;opacity:.8}
+
+/* bar */
+.gb{
+  position:absolute;top:50%;transform:translateY(-50%);
+  border-radius:3px;
+  display:flex;align-items:center;padding:0 5px;
+  font-size:9px;font-weight:600;color:#fff;
+  white-space:nowrap;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  z-index:2
+}
+
+/* weekend cell tint (day scale) */
+.we{background:rgba(0,0,0,.025)}
+
+/* STATS STRIP */
+.ss{
+  display:flex;border-top:1px solid var(--border);background:#fafbfc;flex-shrink:0
+}
+.sb2{flex:1;padding:8px 10px;text-align:center;border-right:1px solid var(--border)}
+.sb2:last-child{border-right:none}
+.sv{font-family:var(--font-cond);font-size:18px;font-weight:700;color:var(--accent);line-height:1}
+.sl{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* LEGEND */
+.leg{padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:1px solid var(--border);background:#fafbfc;flex-shrink:0}
+.li{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.ld{width:10px;height:10px;border-radius:3px}
+.lt{width:3px;height:12px;background:#e53e3e;border-radius:2px}
+
+/* DOC FOOTER */
+.gf{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 16px;border-top:2px solid var(--accent);
+  background:var(--accent);color:rgba(255,255,255,.65);font-size:10px;flex-shrink:0
+}
+.gf strong{color:#fff}
+
+/* ══════════════════════════════════
+   PRINT
+   ══════════════════════════════════ */
+@media print{
+  @page{size:A3 landscape;margin:7mm 9mm}
+  html,body{height:auto;overflow:visible}
+  .app{display:block}
+  .sidebar,.topbar,.no-print{display:none !important}
+  .main{padding:0;overflow:visible;display:block}
+  .gc{box-shadow:none;border-radius:0;border:1px solid #ccc;overflow:visible;display:block}
+  .gantt-area{overflow:visible;display:block}
+  .gtw{overflow:visible}
+  .gg{width:100% !important}
+  .gg th.s,.gg td.s{position:static}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ═══════════════════════════════════
+     SIDEBAR
+════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+
+  <button class="sb-toggle" onclick="toggleSidebar()" title="Réduire / Ouvrir le panneau">
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="7,1 1,7 7,13"/>
+    </svg>
+  </button>
+
+  <div class="sb-inner">
+    <!-- HEAD -->
+    <div class="sb-head">
+      <h1>GANTT<span>'o'</span>MATIC</h1>
+      <p>Générateur de plan de phasage chantier</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs no-print">
+      <div class="tab on"  onclick="stab('tp')">Projet</div>
+      <div class="tab"     onclick="stab('tph')">Phases</div>
+      <div class="tab"     onclick="stab('tt')">Tâches</div>
+      <div class="tab"     onclick="stab('ts')">Style</div>
+    </div>
+
+    <div class="sb-body">
+
+      <!-- ── PROJET ── -->
+      <div class="tp on sec" id="tp">
+        <div class="sec-t">Informations projet</div>
+        <label>Nom du projet</label>
+        <input type="text" id="pn" placeholder="Ex : Voirie lotissement Les Pins" oninput="render()">
+        <label>Maître d'ouvrage</label>
+        <input type="text" id="pmoa" placeholder="Ex : Mairie de Gap" oninput="render()">
+        <label>Maître d'œuvre / Entreprise</label>
+        <input type="text" id="pmoe" placeholder="Ex : André TP" oninput="render()">
+        <label>Référence marché</label>
+        <input type="text" id="pref" placeholder="Ex : MRC-2025-042" oninput="render()">
+
+        <div class="g2" style="margin-top:8px">
+          <div>
+            <label>Date de début</label>
+            <input type="date" id="ps" oninput="render()">
+          </div>
+          <div>
+            <label>Durée &amp; unité</label>
+            <div class="g2" style="gap:4px">
+              <input type="number" id="pdur" value="3" min="1" max="9999" oninput="render()">
+              <select id="punit" onchange="render()">
+                <option value="d">jours</option>
+                <option value="w">sem.</option>
+                <option value="m" selected>mois</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <label>Échelle d'affichage</label>
+        <select id="pscale" onchange="render()">
+          <option value="day">Jours (sous-ligne : n° jour)</option>
+          <option value="week">Semaines (sous-ligne : lundi)</option>
+          <option value="month" selected>Mois (sous-ligne : semaines)</option>
+        </select>
+
+        <label>Description</label>
+        <textarea id="pdesc" rows="2" placeholder="Nature des travaux, contexte…" oninput="render()" style="resize:vertical"></textarea>
+
+        <div class="sec-t" style="margin-top:14px">Logo entreprise</div>
+        <div class="logo-zone" onclick="document.getElementById('lfile').click()">
+          <input type="file" id="lfile" accept="image/*" onchange="loadLogo(this)" style="display:none">
+          <div id="lp">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <p>Cliquer pour importer<br><small>PNG · JPG · SVG</small></p>
+          </div>
+        </div>
+        <button class="btn bg bsm" style="margin-top:4px" onclick="clearLogo()">✕ Retirer le logo</button>
+      </div>
+
+      <!-- ── PHASES ── -->
+      <div class="tp sec" id="tph">
+        <div class="sec-t">Phases du chantier</div>
+        <div id="ph-list"><p style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Aucune phase.</p></div>
+        <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border)">
+          <label>Nom de la phase</label>
+          <input type="text" id="nph" placeholder="Ex : Gros œuvre">
+          <label>Couleur</label>
+          <input type="color" id="nphc" value="#185FA5">
+          <button class="btn bp bfull" onclick="addPhase()">+ Ajouter la phase</button>
+        </div>
+      </div>
+
+      <!-- ── TÂCHES ── -->
+      <div class="tp sec" id="tt">
+        <div class="sec-t">Nouvelle tâche</div>
+        <label>Libellé</label>
+        <input type="text" id="nt-n" placeholder="Ex : Terrassement général">
+        <label>Phase</label>
+        <select id="nt-ph"><option value="">— Sans phase —</option></select>
+        <div class="g2">
+          <div><label>Date de début</label><input type="date" id="nt-s"></div>
+          <div><label>Durée (jours ouvrés)</label><input type="number" id="nt-d" value="5" min="1" max="9999"></div>
+        </div>
+        <label>Moyens humains 👤 (nb personnes)</label>
+        <input type="number" id="nt-h" min="0" max="999" placeholder="Ex : 4">
+        <label>Moyens techniques (engins)</label>
+        <input type="text" id="nt-t" placeholder="Ex : Pelle 20T, Tombereau 25T">
+        <div class="g2" style="margin-top:9px;align-items:end">
+          <div><label>Couleur</label><input type="color" id="nt-c" value="#185FA5"></div>
+          <div><button class="btn bp" style="width:100%;margin-top:0;padding:6px" onclick="addTask()">+ Ajouter</button></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="sec-t">Tâches planifiées</div>
+          <div id="tk-list"><p style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Aucune tâche.</p></div>
+        </div>
+      </div>
+
+      <!-- ── STYLE ── -->
+      <div class="tp sec" id="ts">
+        <div class="sec-t">Personnalisation</div>
+        <label>Couleur principale (en-tête)</label>
+        <input type="color" id="sa" value="#1a4f8a" oninput="applyStyle()">
+        <label>Statut du chantier</label>
+        <input type="text" id="pstat" placeholder="Ex : En cours" oninput="render()">
+        <label>Conducteur de travaux</label>
+        <input type="text" id="presp" placeholder="Nom, prénom" oninput="render()">
+        <label>Ligne Aujourd'hui</label>
+        <select id="shtoday" onchange="render()"><option value="1">Afficher</option><option value="0">Masquer</option></select>
+        <label>Hauteur des lignes</label>
+        <select id="rowh" onchange="render()">
+          <option value="28">Compact (28 px)</option>
+          <option value="36" selected>Normal (36 px)</option>
+          <option value="46">Spacieux (46 px)</option>
+        </select>
+        <label>Largeur des colonnes temps</label>
+        <select id="colw" onchange="render()">
+          <option value="40">Étroite (40 px)</option>
+          <option value="56" selected>Normale (56 px)</option>
+          <option value="72">Large (72 px)</option>
+          <option value="96">Très large (96 px)</option>
+        </select>
+      </div>
+
+    </div><!-- /sb-body -->
+
+    <!-- ACTIONS FOOTER -->
+    <div class="sb-foot no-print">
+      <button class="btn ba bfull" style="font-size:12px" onclick="window.print()">🖨️ Imprimer / PDF A3 paysage</button>
+      <button class="btn bg bfull" style="margin-top:5px;font-size:11px" onclick="saveData()">💾 Sauvegarder JSON</button>
+      <button class="btn bg bfull" style="margin-top:4px;font-size:11px" onclick="document.getElementById('ldjson').click()">📂 Charger JSON<input type="file" id="ldjson" accept=".json" onchange="loadData(this)" style="display:none"></button>
+    </div>
+
+  </div><!-- /sb-inner -->
+</aside>
+
+<!-- ═══════════════════════════════════
+     MAIN
+════════════════════════════════════ -->
+<div class="main">
+
+  <div class="topbar no-print">
+    <h2>Aperçu — Plan de phasage</h2>
+    <button class="btn bp bsm" onclick="window.print()">🖨️ PDF A3 paysage</button>
+  </div>
+
+  <div class="gc">
+
+    <!-- EN-TÊTE DOCUMENT -->
+    <div class="dh">
+      <div class="logo-slot" id="gls"><div class="no-logo">Logo</div></div>
+      <div class="di">
+        <div class="ptitle" id="gt">—</div>
+        <div class="pmeta"  id="gm"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;font-style:italic" id="gd"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+        <span style="font-family:var(--font-cond);font-size:10px;color:var(--muted)" id="gtod">—</span>
+        <span style="font-family:var(--font-cond);font-size:10px;color:var(--muted)" id="gref">—</span>
+        <span style="font-family:var(--font-cond);font-size:10px;font-weight:600;color:var(--accent)" id="gstat">—</span>
+      </div>
+    </div>
+
+    <!-- GANTT TABLE AREA -->
+    <div class="gantt-area">
+      <div class="gtw" id="gtw">
+        <table class="gg" id="gg">
+          <thead id="gthead"></thead>
+          <tbody id="gtbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="ss" id="gstats"></div>
+
+    <!-- LÉGENDE -->
+    <div class="leg" id="gleg"></div>
+
+    <!-- PIED -->
+    <div class="gf">
+      <span>Plan de phasage — généré le <strong id="ggen"></strong></span>
+      <span id="gfr"></span>
+    </div>
+
+  </div><!-- /gc -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══ STATE ═══
+let logo=null, phases=[], tasks=[], uid=1;
+
+// ═══ INIT ═══
+window.onload=()=>{
+  const t=new Date();
+  document.getElementById('ps').value=fmt(t);
+  document.getElementById('nt-s').value=fmt(t);
+  render();
+};
+
+// ═══ SIDEBAR TOGGLE ═══
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+}
+
+// ═══ TABS ═══
+const TABS=['tp','tph','tt','ts'];
+function stab(id){
+  document.querySelectorAll('.tab,.tp').forEach(e=>e.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.tab')[TABS.indexOf(id)].classList.add('on');
+}
+
+// ═══ STYLE ═══
+function applyStyle(){
+  const a=document.getElementById('sa').value;
+  document.documentElement.style.setProperty('--accent',a);
+  // Update dark shade used in hr2
+  const shade=darken(a,20);
+  document.querySelectorAll('.gg thead tr.hr2').forEach(r=>r.style.background=shade);
+}
+function darken(hex,pct){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const f=1-pct/100;
+  return `rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;
+}
+
+// ═══ UTILS ═══
+function fmt(d){return d.toISOString().slice(0,10)}
+function pd(s){return new Date(s+'T00:00:00')}
+function fmtFr(d){return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function isoWeek(d){
+  const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=dt.getUTCDay()||7;
+  dt.setUTCDate(dt.getUTCDate()+4-day);
+  const y1=new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return Math.ceil(((dt-y1)/86400000+1)/7);
+}
+function pct(d,ps,td){return Math.max(0,Math.min(100,((d-ps)/86400000/td)*100));}
+
+// Durée ouvrée → date de fin
+function endDate(startD,jouvres){
+  let d=new Date(startD),count=0;
+  while(count<jouvres-1){d.setDate(d.getDate()+1);const dow=d.getDay();if(dow!==0&&dow!==6)count++;}
+  return d;
+}
+
+// Project total calendar days
+function projectDays(){
+  const unit=document.getElementById('punit').value;
+  const n=parseInt(document.getElementById('pdur').value)||1;
+  if(unit==='d') return n;
+  if(unit==='w') return n*7;
+  return Math.round(n*30.4375);
+}
+
+// ═══ LOGO ═══
+function loadLogo(inp){
+  if(!inp.files[0])return;
+  const r=new FileReader();
+  r.onload=e=>{logo=e.target.result;document.getElementById('lp').innerHTML=`<img src="${logo}" alt="logo">`;render();};
+  r.readAsDataURL(inp.files[0]);
+}
+function clearLogo(){
+  logo=null;
+  document.getElementById('lp').innerHTML=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><p>Cliquer pour importer<br><small>PNG · JPG · SVG</small></p>`;
+  render();
+}
+
+// ═══ PHASES ═══
+function addPhase(){
+  const n=document.getElementById('nph').value.trim();
+  if(!n)return alert('Saisissez un nom de phase.');
+  phases.push({id:'p'+(uid++),name:n,color:document.getElementById('nphc').value});
+  document.getElementById('nph').value='';
+  rfPhSel();rfPhList();render();
+}
+function delPhase(id){
+  if(!confirm('Supprimer cette phase et ses tâches ?'))return;
+  phases=phases.filter(p=>p.id!==id);tasks=tasks.filter(t=>t.pid!==id);
+  rfPhSel();rfPhList();rfTkList();render();
+}
+function rfPhSel(){
+  const s=document.getElementById('nt-ph');
+  s.innerHTML='<option value="">— Sans phase —</option>';
+  phases.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;s.appendChild(o);});
+}
+function rfPhList(){
+  const el=document.getElementById('ph-list');
+  if(!phases.length){el.innerHTML='<p style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Aucune phase.</p>';return;}
+  el.innerHTML=phases.map(p=>`<div class="ph-item"><div class="ph-dot" style="background:${p.color}"></div><span>${esc(p.name)}</span><button class="xbtn" onclick="delPhase('${p.id}')">✕</button></div>`).join('');
+}
+
+// ═══ TASKS ═══
+function addTask(){
+  const name=document.getElementById('nt-n').value.trim();
+  if(!name)return alert('Saisissez un libellé.');
+  const sVal=document.getElementById('nt-s').value;
+  if(!sVal)return alert('Saisissez une date de début.');
+  const dur=parseInt(document.getElementById('nt-d').value)||1;
+  const startD=pd(sVal);
+  const eD=endDate(startD,dur);
+  tasks.push({
+    id:'t'+(uid++),
+    pid:document.getElementById('nt-ph').value||null,
+    name,start:sVal,end:fmt(eD),dur,
+    humain:document.getElementById('nt-h').value||'',
+    tech:document.getElementById('nt-t').value||'',
+    color:document.getElementById('nt-c').value
+  });
+  document.getElementById('nt-n').value='';
+  document.getElementById('nt-h').value='';
+  document.getElementById('nt-t').value='';
+  document.getElementById('nt-d').value=5;
+  rfTkList();render();
+}
+function delTask(id){tasks=tasks.filter(t=>t.id!==id);rfTkList();render();}
+function rfTkList(){
+  const el=document.getElementById('tk-list');
+  if(!tasks.length){el.innerHTML='<p style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Aucune tâche.</p>';return;}
+  el.innerHTML=tasks.map(t=>`<div class="tk-item"><div class="tk-pip" style="background:${t.color}"></div><span title="${esc(t.name)}">${esc(t.name)}</span><small>${t.dur}j</small><button class="xbtn" onclick="delTask('${t.id}')">✕</button></div>`).join('');
+}
+
+// ═══ COLUMN BUILDERS ═══
+
+function buildMonthCols(ps,totalDays){
+  const pe=addDays(ps,Math.ceil(totalDays));
+  const months=[];
+  let cur=new Date(ps.getFullYear(),ps.getMonth(),1);
+  while(cur<pe){
+    const nextM=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    const rangeS=cur<ps?new Date(ps):new Date(cur);
+    const rangeE=nextM>pe?new Date(pe):new Date(nextM);
+    const weeks=[];
+    let wd=new Date(rangeS);
+    const dow=wd.getDay();
+    if(dow!==1) wd.setDate(wd.getDate()+(dow===0?1:8-dow));
+    while(wd<rangeE){weeks.push({n:isoWeek(wd),d:new Date(wd)});wd=addDays(wd,7);}
+    if(!weeks.length) weeks.push({n:isoWeek(rangeS),d:new Date(rangeS)});
+    months.push({label:cur.toLocaleString('fr-FR',{month:'short',year:'2-digit'}),date:new Date(cur),weeks});
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  return months;
+}
+
+function buildWeekCols(ps,totalDays){
+  const pe=addDays(ps,Math.ceil(totalDays));
+  const weeks=[];
+  let cur=new Date(ps);
+  const dow=cur.getDay();
+  if(dow!==1) cur.setDate(cur.getDate()-(dow===0?6:dow-1));
+  while(cur<pe){
+    weeks.push({n:isoWeek(cur),monday:new Date(cur),label:cur.toLocaleString('fr-FR',{month:'short'})});
+    cur=addDays(cur,7);
+  }
+  return weeks;
+}
+
+function buildDayCols(ps,totalDays){
+  const pe=addDays(ps,Math.ceil(totalDays));
+  const months=[];
+  let cur=new Date(ps.getFullYear(),ps.getMonth(),1);
+  while(cur<pe){
+    const nextM=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    const days=[];
+    let d=cur<ps?new Date(ps):new Date(cur);
+    while(d<nextM&&d<pe){days.push(new Date(d));d=addDays(d,1);}
+    if(days.length) months.push({label:cur.toLocaleString('fr-FR',{month:'short',year:'2-digit'}),days});
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  return months;
+}
+
+// ═══ MAIN RENDER ═══
+function render(){
+  const psVal=document.getElementById('ps').value;
+  if(!psVal)return;
+  const ps=pd(psVal);
+  const totalDays=projectDays();
+  const pe=addDays(ps,Math.ceil(totalDays));
+  const scale=document.getElementById('pscale').value;
+  const rowH=parseInt(document.getElementById('rowh').value)||36;
+  const colW=parseInt(document.getElementById('colw').value)||56;
+  const showToday=document.getElementById('shtoday').value==='1';
+  const today=new Date();
+  const todayPct=pct(today,ps,totalDays);
+  const showTL=showToday&&todayPct>=0&&todayPct<=100;
+
+  // ── Doc header ──
+  document.getElementById('gt').textContent=document.getElementById('pn').value||'—';
+  const moa=document.getElementById('pmoa').value,moe=document.getElementById('pmoe').value,resp=document.getElementById('presp').value;
+  document.getElementById('gm').innerHTML=[
+    moa?`<span>🏛 ${esc(moa)}</span>`:'',
+    moe?`<span>🏗 ${esc(moe)}</span>`:'',
+    resp?`<span>👤 ${esc(resp)}</span>`:'',
+    `<span>📅 ${fmtFr(ps)} → ${fmtFr(pe)}</span>`
+  ].filter(Boolean).join('');
+  document.getElementById('gd').textContent=document.getElementById('pdesc').value||'';
+  document.getElementById('gstat').textContent=document.getElementById('pstat').value||'';
+  document.getElementById('gref').textContent=document.getElementById('pref').value||'';
+  document.getElementById('gtod').textContent="Aujourd'hui : "+fmtFr(today);
+  document.getElementById('ggen').textContent=fmtFr(today);
+  document.getElementById('gfr').innerHTML=moe?`<strong>${esc(moe)}</strong>`:'';
+  document.getElementById('gls').innerHTML=logo?`<img src="${logo}" alt="logo">`:`<div class="no-logo">Logo</div>`;
+
+  // ── Fixed cols widths ──
+  const FIX_W=180+62+128; // col-task + col-hum + col-tec
+
+  // ── Build columns & measure total time-column width ──
+  let nTimeCols=0, colDefs=[], tableW=0;
+
+  const FIX_TH=`
+    <th class="s s1 th-fix" rowspan="2">Tâche / Livrable</th>
+    <th class="s s2 th-fix" rowspan="2" style="text-align:center">👤<br>Pers.</th>
+    <th class="s s3 th-fix" rowspan="2">Engins &amp; Matériel</th>`;
+
+  let th='';
+
+  if(scale==='month'){
+    const months=buildMonthCols(ps,totalDays);
+    nTimeCols=months.reduce((s,m)=>s+m.weeks.length,0);
+    tableW=FIX_W+nTimeCols*colW;
+    th+=`<tr class="hr1">${FIX_TH}`;
+    months.forEach(m=>{
+      th+=`<th class="th-per" colspan="${m.weeks.length}" style="width:${m.weeks.length*colW}px">${m.label}</th>`;
+    });
+    th+=`</tr><tr class="hr2">`;
+    months.forEach(m=>{
+      m.weeks.forEach((w,i)=>{
+        th+=`<th class="th-sub${i===0?' nb':''}" style="width:${colW}px">S${w.n}</th>`;
+      });
+    });
+    th+=`</tr>`;
+    // colDefs for weekend/sep detection not needed here
+    colDefs=months.flatMap(m=>m.weeks.map(w=>({type:'week',date:w.d})));
+
+  } else if(scale==='week'){
+    const weeks=buildWeekCols(ps,totalDays);
+    nTimeCols=weeks.length;
+    tableW=FIX_W+nTimeCols*colW;
+    th+=`<tr class="hr1">${FIX_TH}`;
+    weeks.forEach(w=>{
+      th+=`<th class="th-per" style="width:${colW}px">S${w.n}<br><span style="font-size:8px;opacity:.65">${w.label}</span></th>`;
+    });
+    th+=`</tr><tr class="hr2">`;
+    weeks.forEach(w=>{
+      th+=`<th class="th-sub nb" style="width:${colW}px">${w.monday.getDate().toString().padStart(2,'0')}/${(w.monday.getMonth()+1).toString().padStart(2,'0')}</th>`;
+    });
+    th+=`</tr>`;
+    colDefs=weeks.map(w=>({type:'week',date:w.monday}));
+
+  } else { // day
+    const months=buildDayCols(ps,totalDays);
+    nTimeCols=months.reduce((s,m)=>s+m.days.length,0);
+    tableW=FIX_W+nTimeCols*colW;
+    th+=`<tr class="hr1">${FIX_TH}`;
+    months.forEach(m=>{
+      th+=`<th class="th-per" colspan="${m.days.length}" style="width:${m.days.length*colW}px">${m.label}</th>`;
+    });
+    th+=`</tr><tr class="hr2">`;
+    let isFirst=true;
+    months.forEach(m=>{
+      m.days.forEach((d,i)=>{
+        const dow=d.getDay();
+        const isWE=dow===0||dow===6;
+        const cls=(i===0||isFirst)?'th-sub nb':'th-sub';
+        isFirst=false;
+        const op=isWE?'opacity:.4;':''
+        th+=`<th class="${cls}" style="width:${colW}px;${op}">${d.getDate()}</th>`;
+      });
+    });
+    th+=`</tr>`;
+    colDefs=months.flatMap(m=>m.days.map(d=>({type:'day',date:d,isWE:d.getDay()===0||d.getDay()===6})));
+  }
+
+  document.getElementById('gthead').innerHTML=th;
+  const table=document.getElementById('gg');
+  table.style.width=tableW+'px';
+  table.style.minWidth=tableW+'px';
+
+  // ── TODAY line: rendered inside a full-width spanning td ──
+  const TL=showTL?`<div class="ti" style="left:${todayPct.toFixed(3)}%"></div>`:'';
+
+  // ── bar td spanning all time cols ──
+  function barTd(task,rh,isPhase){
+    if(isPhase){
+      return `<td colspan="${nTimeCols}" style="position:relative;height:26px;padding:0">${TL}</td>`;
+    }
+    const s=pd(task.start),e=pd(task.end);
+    const l=pct(s,ps,totalDays);
+    const r=pct(e,ps,totalDays);
+    const w=Math.max(0.2,r-l);
+    const bh=Math.round(rh*0.56);
+    const label=w>3?esc(task.name):'';
+    return `<td colspan="${nTimeCols}" style="position:relative;height:${rh}px;padding:0">${TL}<div class="gb" style="left:${l.toFixed(3)}%;width:${w.toFixed(3)}%;height:${bh}px;background:${task.color}" title="${esc(task.name)} — ${task.dur} j ouvrés">${label}</div></td>`;
+  }
+
+  // ── tbody ──
+  let html='',totalJours=0,totalTasks=0,maxHum=0;
+
+  phases.forEach(ph=>{
+    const ptasks=tasks.filter(t=>t.pid===ph.id);
+    html+=`<tr class="pr">
+      <td class="s s1" style="height:26px"><div class="plc"><div class="pd2" style="background:${ph.color}"></div><span>${esc(ph.name)}</span></div></td>
+      <td class="s s2" style="height:26px"></td>
+      <td class="s s3" style="height:26px"></td>
+      ${barTd(null,26,true)}
+    </tr>`;
+    ptasks.forEach(t=>{
+      totalJours+=t.dur;totalTasks++;
+      const h=parseInt(t.humain)||0;if(h>maxHum)maxHum=h;
+      html+=`<tr class="tr">
+        <td class="s s1 tlc" style="height:${rowH}px">${esc(t.name)}</td>
+        <td class="s s2 hc"  style="height:${rowH}px">${t.humain?'👤 '+esc(t.humain):''}</td>
+        <td class="s s3 tc"  style="height:${rowH}px">${esc(t.tech||'')}</td>
+        ${barTd(t,rowH,false)}
+      </tr>`;
+    });
+  });
+
+  // Orphelins
+  tasks.filter(t=>!t.pid||!phases.find(p=>p.id===t.pid)).forEach(t=>{
+    totalJours+=t.dur;totalTasks++;
+    const h=parseInt(t.humain)||0;if(h>maxHum)maxHum=h;
+    html+=`<tr class="tr">
+      <td class="s s1 tlc" style="height:${rowH}px">${esc(t.name)}</td>
+      <td class="s s2 hc"  style="height:${rowH}px">${t.humain?'👤 '+esc(t.humain):''}</td>
+      <td class="s s3 tc"  style="height:${rowH}px">${esc(t.tech||'')}</td>
+      ${barTd(t,rowH,false)}
+    </tr>`;
+  });
+
+  if(!html) html=`<tr><td colspan="${nTimeCols+3}" style="text-align:center;padding:28px;font-size:13px;color:var(--muted)">Ajoutez des phases et des tâches dans le panneau de gauche.</td></tr>`;
+  document.getElementById('gtbody').innerHTML=html;
+
+  // ── Stats ──
+  const calDays=Math.ceil(totalDays);
+  document.getElementById('gstats').innerHTML=`
+    <div class="sb2"><div class="sv">${calDays}</div><div class="sl">Jours calendaires</div></div>
+    <div class="sb2"><div class="sv">${Math.round(calDays*5/7)}</div><div class="sl">Jours ouvrés (projet)</div></div>
+    <div class="sb2"><div class="sv">${totalJours}</div><div class="sl">Jours ouvrés planifiés</div></div>
+    <div class="sb2"><div class="sv">${totalTasks}</div><div class="sl">Tâches</div></div>
+    <div class="sb2"><div class="sv">${phases.length}</div><div class="sl">Phases</div></div>
+    <div class="sb2"><div class="sv">${maxHum||'—'}</div><div class="sl">Effectif max 👤</div></div>`;
+
+  // ── Legend ──
+  let leg='';
+  phases.forEach(p=>{leg+=`<div class="li"><div class="ld" style="background:${p.color}"></div>${esc(p.name)}</div>`;});
+  if(showTL) leg+=`<div class="li"><div class="lt"></div>Aujourd'hui</div>`;
+  document.getElementById('gleg').innerHTML=leg||'<span style="font-size:11px;color:var(--muted)">—</span>';
+}
+
+// ═══ SAVE / LOAD ═══
+function saveData(){
+  const proj={};
+  ['pn','pmoa','pmoe','pref','ps','pdur','punit','pscale','pdesc','pstat','presp'].forEach(id=>{proj[id]=document.getElementById(id).value;});
+  const data={proj,phases,tasks,logo,style:{a:document.getElementById('sa').value}};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='gantt_'+(proj.pn||'projet').replace(/\s+/g,'_').slice(0,30)+'.json';
+  a.click();
+}
+function loadData(inp){
+  if(!inp.files[0])return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.proj) Object.entries(d.proj).forEach(([k,v])=>{const el=document.getElementById(k);if(el)el.value=v;});
+      if(d.phases)phases=d.phases;
+      if(d.tasks)tasks=d.tasks;
+      if(d.logo){logo=d.logo;document.getElementById('lp').innerHTML=`<img src="${logo}" alt="logo">`;}
+      if(d.style&&d.style.a){document.getElementById('sa').value=d.style.a;applyStyle();}
+      const allIds=[...phases.map(p=>p.id),...tasks.map(t=>t.id)];
+      uid=Math.max(uid,...allIds.map(id=>parseInt(id.replace(/\D/g,''))||0))+1;
+      rfPhSel();rfPhList();rfTkList();render();
+    }catch{alert('Erreur de lecture du fichier JSON.');}
+  };
+  r.readAsText(inp.files[0]);
+}
+</script>
+</body>
+</html>
