@@ -69,9 +69,34 @@
   .project label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
   .project input{
     border:none;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);
-    outline:none;width:220px;
+    outline:none;width:160px;
   }
   .project input::placeholder{font-weight:500;color:#aab4c3;}
+  .company{display:flex;align-items:center;gap:8px;margin-left:8px;}
+  .logo-slot{
+    position:relative;width:44px;height:44px;flex:0 0 auto;margin-left:8px;border:1px dashed var(--line-strong);border-radius:9px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--canvas);
+  }
+  .logo-slot img{max-width:100%;max-height:100%;object-fit:contain;}
+  .logo-ph{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);}
+  .logo-x{
+    position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:1px solid var(--line-strong);
+    background:#fff;color:#c0392b;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .logo-x:hover{background:#fdf0f0;}
+  .crop-stage{position:relative;display:inline-block;line-height:0;user-select:none;touch-action:none;}
+  .crop-stage img{display:block;max-width:70vw;max-height:58vh;}
+  .crop-box{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(20,26,38,.55);cursor:move;box-sizing:border-box;}
+  .crop-box .ch{position:absolute;width:14px;height:14px;background:#fff;border:1px solid var(--accent-deep);border-radius:3px;}
+  .crop-box .ch.tl{left:-8px;top:-8px;cursor:nwse-resize;}
+  .crop-box .ch.tr{right:-8px;top:-8px;cursor:nesw-resize;}
+  .crop-box .ch.bl{left:-8px;bottom:-8px;cursor:nesw-resize;}
+  .crop-box .ch.br{right:-8px;bottom:-8px;cursor:nwse-resize;}
+  .crop-hint{font-size:12px;color:var(--ink-soft);margin:12px 0 0;text-align:center;max-width:380px;}
+  .company-name{display:flex;align-items:center;gap:8px;background:var(--canvas);border:1px solid var(--line-strong);border-radius:9px;padding:5px 10px;}
+  .company-name label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+  .company-name input{border:none;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);outline:none;width:160px;}
+  .company-name input::placeholder{font-weight:500;color:#aab4c3;}
   .grp{display:flex;align-items:center;gap:6px;}
   .grp.box{
     background:var(--canvas);border:1px solid var(--line);
@@ -247,6 +272,9 @@
   .bilan-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
   .bilan-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-deep);}
   .coef-ctl{display:flex;align-items:center;gap:8px;}
+  .bilan-ctls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .forfait-inp{width:110px;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:#fcfdff;text-align:center;}
+  .coef-ctl input:disabled{opacity:.45;cursor:not-allowed;}
   .coef-ctl label{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);}
   .coef-ctl input{width:84px;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:#fcfdff;text-align:center;}
   .coef-ctl input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(226,115,58,.15);}
@@ -367,6 +395,9 @@
   /* ---------- Impression PDF (A3 paysage) ---------- */
   #printArea{display:none;}
   #printArea .pr-eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8a94a3;margin:0 0 2px;}
+  #printArea .pr-brandrow{display:flex;align-items:center;gap:14px;margin:0 0 6px;}
+  #printArea .pr-logo{max-height:56px;max-width:200px;object-fit:contain;}
+  #printArea .pr-company{font-size:15px;font-weight:800;letter-spacing:-.01em;color:#1b2230;}
   #printArea .pr-eyebrow .o{color:var(--accent);}
   #printArea .pr-title{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:0 0 2px;}
   #printArea .pr-title .o{color:var(--accent);}
@@ -400,6 +431,16 @@
 
   <div class="toolbar">
     <div class="brand">Gantt&nbsp;<span class="o">'o'</span>&nbsp;Matic</div>
+    <div class="logo-slot" id="logoSlot" title="Importer / remplacer le logo">
+      <img id="logoImg" alt="" style="display:none">
+      <span class="logo-ph" id="logoPh">Logo</span>
+      <button type="button" class="logo-x" id="logoRemove" title="Retirer le logo" style="display:none">&times;</button>
+      <input type="file" id="logoInput" accept="image/*" hidden>
+    </div>
+    <div class="company-name">
+      <label for="compName">Entreprise</label>
+      <input type="text" id="compName" placeholder="Nom de l'entreprise…">
+    </div>
     <div class="project">
       <label for="projName">Projet</label>
       <input type="text" id="projName" placeholder="Nom du projet…">
@@ -435,6 +476,23 @@
 
   <datalist id="moList"></datalist>
   <datalist id="engList"></datalist>
+
+  <!-- Recadrage logo -->
+  <div class="overlay" id="cropOverlay">
+    <div class="modal" style="width:auto;max-width:96vw">
+      <div class="modal-head"><h3>Recadrer le logo</h3><button class="modal-x" id="cropClose" title="Fermer">&times;</button></div>
+      <div class="body" style="align-items:center">
+        <div class="crop-stage" id="cropStage">
+          <img id="cropImg" alt="">
+          <div class="crop-box" id="cropBox">
+            <span class="ch tl"></span><span class="ch tr"></span><span class="ch bl"></span><span class="ch br"></span>
+          </div>
+        </div>
+        <p class="crop-hint">Déplace le cadre et tire ses coins. Sans modification, l'image entière est conservée.</p>
+      </div>
+      <div class="foot"><div class="spacer"></div><button class="btn" id="cropCancel">Annuler</button><button class="btn primary" id="cropOk">Recadrer</button></div>
+    </div>
+  </div>
 
   <!-- Modal item -->
   <div class="overlay" id="overlay">
@@ -508,19 +566,22 @@
           </div>
 
           <div class="bcol">
-            <div class="field">
-              <div class="field-h"><label>Main d'œuvre <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addMO" title="Ajouter">+</button></div>
-              <div id="moRows"></div>
+            <div class="subpanel">
+              <div class="sub-h">👷🏻‍♂️ Détail d'effectif</div>
+              <div class="field">
+                <div class="field-h"><label>Main d'œuvre <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addMO" title="Ajouter">+</button></div>
+                <div id="moRows"></div>
+              </div>
+              <div class="field">
+                <div class="field-h"><label>Moyens matériels — engins <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addEngin" title="Ajouter">+</button></div>
+                <div id="enginsList"></div>
+              </div>
+              <div class="field">
+                <div class="field-h"><label>📦 Divers <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addDivers" title="Ajouter">+</button></div>
+                <div id="diversList"></div>
+              </div>
+              <div class="calc-line"><span>Jours ouvrés de la tâche</span><b id="evJours">—</b></div>
             </div>
-            <div class="field">
-              <div class="field-h"><label>Moyens matériels — engins <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addEngin" title="Ajouter">+</button></div>
-              <div id="enginsList"></div>
-            </div>
-            <div class="field">
-              <div class="field-h"><label>📦 Divers <span class="hint">(€ / jour ouvré)</span></label><button type="button" class="add-mini" id="addDivers" title="Ajouter">+</button></div>
-              <div id="diversList"></div>
-            </div>
-            <div class="calc-line"><span>Jours ouvrés de la tâche</span><b id="evJours">—</b></div>
           </div>
 
         </div>
@@ -528,7 +589,11 @@
         <div class="bilan">
           <div class="bilan-head">
             <div class="bilan-title">📊 Bilan financier</div>
-            <div class="coef-ctl"><label for="evCoef">Coef. marge brut (÷)</label><input type="number" id="evCoef" min="0.1" max="1" step="0.01" value="0.8"></div>
+            <div class="bilan-ctls">
+              <label class="opt"><input type="checkbox" id="optForfait"> <span>Prix forfaitaire</span></label>
+              <input type="number" id="mForfait" class="forfait-inp" min="0" step="0.01" placeholder="Vente (€)" style="display:none">
+              <div class="coef-ctl"><label for="evCoef">Coef. marge (÷)</label><input type="number" id="evCoef" min="0.1" max="1" step="0.01" value="0.8"></div>
+            </div>
           </div>
           <div class="bilan-cards">
             <div class="bcard"><span class="bc-lab">Déboursé total</span><b id="binDeb">0,00 €</b></div>
@@ -923,7 +988,7 @@ function itemCost(it){
   return c;
 }
 function itemCoef(it){ const c=it.margeCoef; return (c&&c>0)?c:0.8; }
-function itemPV(it){ return itemCost(it)/itemCoef(it); }   // prix de vente = déboursé ÷ coef
+function itemPV(it){ if(typeof it.forfait==="number") return it.forfait; return itemCost(it)/itemCoef(it); }   // vente = forfait OU déboursé ÷ coef
 function atelierTotal(cl){
   let s=0;
   for(const l of cl.lignes) for(const it of l.items) s+=itemPV(it);
@@ -1416,13 +1481,14 @@ function updateModalTotal(){
   document.getElementById("evJours").textContent = joursModal()+" j";
 
   const bk=modalBreakdown();
-  const vente=bk.debourse/modalCoef();
+  const forfaitOn=document.getElementById("optForfait").checked;
+  const vente = forfaitOn ? (parseFloat(document.getElementById("mForfait").value)||0) : bk.debourse/modalCoef();
   const marge=vente-bk.debourse;
   document.getElementById("binDeb").textContent = fmtEUR(bk.debourse);
   document.getElementById("binVente").textContent = fmtEUR(vente);
   document.getElementById("binMarge").textContent = fmtEUR(marge);
   document.getElementById("binPct").innerHTML = (vente>0?marge/vente*100:0).toFixed(2)+"&nbsp;%";
-  document.getElementById("binPU").textContent = ev.vol>0 ? fmtEUR(vente/ev.vol)+" /m³" : "—";
+  document.getElementById("binPU").textContent = modalEvac().vol>0 ? fmtEUR(vente/modalEvac().vol)+" /m³" : "—";
   renderDonut(document.getElementById("binChart"), document.getElementById("binLegend"), [
     {label:"Main d'œuvre", value:bk.moC, color:"#3a86c4"},
     {label:"Engins",       value:bk.engC, color:"#e2733a"},
@@ -1430,10 +1496,18 @@ function updateModalTotal(){
     {label:"Évacuation",   value:bk.evac, color:"#16a085"},
   ]);
 }
+function syncForfait(){
+  const on=document.getElementById("optForfait").checked;
+  document.getElementById("mForfait").style.display = on?"":"none";
+  document.getElementById("evCoef").disabled = on;
+  updateModalTotal();
+}
 
 document.getElementById("addEngin").onclick=()=>addEnginRow("","");
 document.getElementById("addMO").onclick=()=>addMORow("",1,"");
 document.getElementById("addDivers").onclick=()=>addDiversRow("","");
+document.getElementById("optForfait").addEventListener("change",syncForfait);
+document.getElementById("mForfait").addEventListener("input",updateModalTotal);
 ["evVol","evFois","evNb","evRotJ","evDens","evPrix","evCoef"].forEach(id=>document.getElementById(id).addEventListener("input",updateModalTotal));
 document.getElementById("evCamion").addEventListener("change",updateModalTotal);
 
@@ -1477,7 +1551,10 @@ function openModal(ligneId, itemId, defaultStart){
   document.getElementById("evDens").value = ev.dens!=null?ev.dens:1.8;
   document.getElementById("evPrix").value = ev.prix!=null?ev.prix:"";
   document.getElementById("evCoef").value = it.margeCoef!=null?it.margeCoef:0.8;
+  document.getElementById("optForfait").checked = (typeof it.forfait==="number");
+  document.getElementById("mForfait").value = (typeof it.forfait==="number")?it.forfait:"";
   syncOptFields();
+  syncForfait();
   overlay.classList.add("open");
   setTimeout(()=>document.getElementById("mLabel").focus(),30);
 }
@@ -1535,7 +1612,8 @@ document.getElementById("mSave").onclick=()=>{
   const ev=modalEvac();
   const evac=(ev.vol||ev.prix)?ev:null;
   const margeCoef=modalCoef();
-  const data={label,start,end,color,price,note,mainOeuvre,engins,divers,evac,margeCoef,effectif:null};
+  const forfait = document.getElementById("optForfait").checked ? (parseFloat(document.getElementById("mForfait").value)||0) : null;
+  const data={label,start,end,color,price,note,mainOeuvre,engins,divers,evac,margeCoef,forfait,effectif:null};
   if(modalCtx.itemId){
     const ref=findItem(modalCtx.itemId);
     Object.assign(ref.item,data);
@@ -1571,6 +1649,97 @@ document.getElementById("addAtelier").onclick=addClasseur;
 const projInput=document.getElementById("projName");
 projInput.addEventListener("input",()=>{ state.projectName=projInput.value; save(); });
 function syncProjectName(){ projInput.value=state.projectName||""; }
+
+/* ---- entreprise & logo ---- */
+const compInput=document.getElementById("compName");
+compInput.addEventListener("input",()=>{ state.company=compInput.value; save(); });
+function syncLogo(){
+  const img=document.getElementById("logoImg"), ph=document.getElementById("logoPh"), x=document.getElementById("logoRemove");
+  if(state.logo){ img.src=state.logo; img.style.display=""; ph.style.display="none"; x.style.display=""; }
+  else{ img.removeAttribute("src"); img.style.display="none"; ph.style.display=""; x.style.display="none"; }
+}
+function syncCompany(){ compInput.value=state.company||""; syncLogo(); }
+document.getElementById("logoSlot").addEventListener("click",e=>{
+  if(e.target.id==="logoRemove") return;
+  document.getElementById("logoInput").click();
+});
+document.getElementById("logoRemove").addEventListener("click",e=>{
+  e.stopPropagation(); state.logo=null; save(); syncLogo();
+});
+document.getElementById("logoInput").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ const img=new Image(); img.onload=()=>openCrop(img); img.onerror=()=>toast("Image illisible."); img.src=reader.result; };
+  reader.readAsDataURL(f);
+  e.target.value="";
+});
+
+/* ---- recadrage du logo ---- */
+let cropState=null; // {img, dispW, dispH}
+function openCrop(img){
+  const ci=document.getElementById("cropImg");
+  ci.onload=()=>{
+    const dispW=ci.clientWidth, dispH=ci.clientHeight;
+    cropState={img, dispW, dispH};
+    const side=Math.min(dispW,dispH);
+    const box=document.getElementById("cropBox");
+    box.style.left=((dispW-side)/2)+"px"; box.style.top=((dispH-side)/2)+"px";
+    box.style.width=side+"px"; box.style.height=side+"px";
+  };
+  document.getElementById("cropOverlay").classList.add("open");
+  ci.src=img.src;
+}
+function closeCrop(){ document.getElementById("cropOverlay").classList.remove("open"); cropState=null; }
+(function(){
+  const box=document.getElementById("cropBox");
+  let mode=null,start=null;
+  box.addEventListener("pointerdown",e=>{
+    if(!cropState) return;
+    const cls=e.target.classList;
+    mode = cls.contains("ch") ? ["tl","tr","bl","br"].find(c=>cls.contains(c)) : "move";
+    start={x:e.clientX,y:e.clientY,L:box.offsetLeft,T:box.offsetTop,W:box.offsetWidth,H:box.offsetHeight};
+    box.setPointerCapture(e.pointerId); e.stopPropagation();
+  });
+  box.addEventListener("pointermove",e=>{
+    if(!mode||!cropState) return;
+    const SW=cropState.dispW, SH=cropState.dispH;
+    const dx=e.clientX-start.x, dy=e.clientY-start.y;
+    if(mode==="move"){
+      let L=Math.max(0,Math.min(start.L+dx, SW-start.W));
+      let T=Math.max(0,Math.min(start.T+dy, SH-start.H));
+      box.style.left=L+"px"; box.style.top=T+"px";
+      return;
+    }
+    /* coin : carré ancré sur le coin opposé */
+    const left=mode.includes("l"), top=mode.includes("t");
+    const ax = left ? start.L+start.W : start.L;   // X du coin fixe
+    const ay = top  ? start.T+start.H : start.T;   // Y du coin fixe
+    const mx = (left ? start.L : start.L+start.W) + dx; // X du coin déplacé
+    const my = (top  ? start.T : start.T+start.H) + dy;
+    let side=Math.max(Math.abs(mx-ax), Math.abs(my-ay));
+    const maxByX = left ? ax : SW-ax;
+    const maxByY = top  ? ay : SH-ay;
+    side=Math.max(24, Math.min(side, maxByX, maxByY));
+    const L = left ? ax-side : ax;
+    const T = top  ? ay-side : ay;
+    box.style.left=L+"px"; box.style.top=T+"px"; box.style.width=side+"px"; box.style.height=side+"px";
+  });
+  box.addEventListener("pointerup",()=>{ mode=null; });
+})();
+document.getElementById("cropOk").onclick=()=>{
+  if(!cropState){ closeCrop(); return; }
+  const box=document.getElementById("cropBox");
+  const k=cropState.img.naturalWidth/cropState.dispW;
+  const SX=box.offsetLeft*k, SY=box.offsetTop*k, SW=box.offsetWidth*k, SH=box.offsetHeight*k;
+  const maxDim=320, scale=Math.min(1, maxDim/Math.max(SW,SH));
+  const cw=Math.max(1,Math.round(SW*scale)), ch=Math.max(1,Math.round(SH*scale));
+  const cv=document.createElement("canvas"); cv.width=cw; cv.height=ch;
+  cv.getContext("2d").drawImage(cropState.img, SX,SY,SW,SH, 0,0,cw,ch);
+  try{ state.logo=cv.toDataURL("image/png"); save(); syncLogo(); }catch(err){ toast("Logo illisible."); }
+  closeCrop();
+};
+document.getElementById("cropCancel").onclick=closeCrop;
+document.getElementById("cropClose").onclick=closeCrop;
 document.getElementById("todayBtn").onclick=()=>{
   viewStart = Date.now() - laneWidth()/pxPerMs/2;
   renderTime();
@@ -1588,7 +1757,7 @@ document.getElementById("importBtn").onclick=()=>document.getElementById("fileIn
 document.getElementById("fileInput").addEventListener("change",e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const obj=JSON.parse(r.result); if(obj&&Array.isArray(obj.classeurs)){ state=obj; save(); syncProjectName(); renderStructure(); toast("Planning importé."); } else toast("Fichier invalide."); }catch(err){ toast("Lecture impossible : "+err.message); } };
+  r.onload=()=>{ try{ const obj=JSON.parse(r.result); if(obj&&Array.isArray(obj.classeurs)){ state=obj; save(); syncProjectName(); syncCompany(); renderStructure(); toast("Planning importé."); } else toast("Fichier invalide."); }catch(err){ toast("Lecture impossible : "+err.message); } };
   r.readAsText(f);
   e.target.value="";
 });
@@ -1611,8 +1780,12 @@ function buildPrint(){
   const old=document.getElementById("printArea"); if(old) old.remove();
   const root=document.createElement("div"); root.id="printArea";
 
-  const eb=document.createElement("div"); eb.className="pr-eyebrow";
-  eb.innerHTML="Gantt <span class='o'>'o'</span> Matic"; root.appendChild(eb);
+  const brand=document.createElement("div"); brand.className="pr-brandrow";
+  if(state.logo){ const lg=document.createElement("img"); lg.className="pr-logo"; lg.src=state.logo; brand.appendChild(lg); }
+  const bt=document.createElement("div");
+  if(state.company){ const cn=document.createElement("div"); cn.className="pr-company"; cn.textContent=state.company; bt.appendChild(cn); }
+  const eb=document.createElement("div"); eb.className="pr-eyebrow"; eb.innerHTML="Gantt <span class='o'>'o'</span> Matic";
+  bt.appendChild(eb); brand.appendChild(bt); root.appendChild(brand);
   const t1=document.createElement("div"); t1.className="pr-title";
   t1.textContent=state.projectName ? state.projectName : "Planning"; root.appendChild(t1);
   const t2=document.createElement("div"); t2.className="pr-sub";
@@ -1685,6 +1858,7 @@ window.addEventListener("resize",()=>renderTime());
    ========================================================================= */
 load();
 syncProjectName();
+syncCompany();
 viewStart = Date.now() - 3*MS.day; // un peu de marge avant aujourd'hui
 syncZoomUI();
 renderStructure();
